@@ -58,4 +58,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
             throw new JwtAuthenticationException(MessageConstant.NEED_USER_PERMISSIONS);
         }
     }
+    public void afterCompletion(HttpServletRequest request,HttpServletResponse response,Object handler){
+        BaseContext.removeCurrentId();
+    }
 }

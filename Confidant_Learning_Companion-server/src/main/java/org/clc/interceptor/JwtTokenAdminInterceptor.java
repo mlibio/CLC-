@@ -59,4 +59,8 @@ public class JwtTokenAdminInterceptor implements HandlerInterceptor {
             throw new JwtAuthenticationException(MessageConstant.NEED_ADMIN_PERMISSIONS);
         }
     }
+
+    public void afterCompletion(HttpServletRequest request,HttpServletResponse response,Object handler){
+        BaseContext.removeCurrentId();
+    }
 }
