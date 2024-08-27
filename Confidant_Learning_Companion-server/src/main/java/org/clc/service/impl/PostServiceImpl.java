@@ -8,17 +8,15 @@ import org.clc.constant.MessageConstant;
 import org.clc.context.BaseContext;
 import org.clc.dto.PageQueryDto;
 import org.clc.dto.PostIdDto;
-import org.clc.entity.LearnerFavorPost;
-import org.clc.entity.OperationLogs;
-import org.clc.entity.Post;
+import org.clc.entity.*;
 import org.clc.entity.enumeration.OperationType;
-import org.clc.mapper.LearnerFavorPostMapper;
-import org.clc.mapper.OperationLogsMapper;
-import org.clc.mapper.PostMapper;
+import org.clc.mapper.*;
 import org.clc.result.PageResult;
 import org.clc.result.Result;
 import org.clc.service.PostService;
 import org.clc.utils.OperationLogsUtil;
+import org.clc.vo.PostVo;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +33,15 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Autowired
     private PostMapper postMapper;
+
+    @Autowired
+    private LearnerMapper learnerMapper;
+
+    @Autowired
+    private TagMapper tagMapper;
+
+    @Autowired
+    private TagPostMapper tagPostMapper;
 
     @Autowired
     private LearnerFavorPostMapper learnerFavorPostMapper;
@@ -61,8 +68,23 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             LambdaQueryWrapper<Post> queryWrapper1 = new LambdaQueryWrapper<>();
             queryWrapper.in("post_id", postIdList);
             Page<Post> p = postMapper.selectPage(page, queryWrapper1);
-            //TODO:返回值有待商榷，返回帖子的作者信息，评论信息，标签信息。。。
-            return new PageResult(p.getTotal(),p.getPages(),p.getRecords());
+            //返回帖子的作者信息，标签信息
+            List<Post> posts = p.getRecords();
+            List<PostVo> postVos = new ArrayList<>();
+            for(Post post:posts){
+                PostVo postVo=new PostVo();
+                BeanUtils.copyProperties(post,postVo);
+                postVo.setUsername(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getUsername());
+                postVo.setLearnerImage(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getImage());
+                List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("postId",post.getPostId()));
+                List<Tag> tags=new ArrayList<>();
+                for(TagPost tagPost:tagPosts){
+                    tags.add(tagMapper.selectById(tagPost.getTagId()));
+                }
+                postVo.setTags(tags);
+                postVos.add(postVo);
+            }
+            return new PageResult(p.getTotal(),p.getPages(),postVos);
         }else{
             return new PageResult(0,0,Collections.EMPTY_LIST);
         }
@@ -72,8 +94,23 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     public PageResult getPosts(PageQueryDto pageQueryDto) {
         Page<Post> page=Page.of(pageQueryDto.getPage(),pageQueryDto.getPageSize());
         postMapper.selectList(new QueryWrapper<>());
-        //TODO:返回值有待商榷，返回帖子的作者信息，评论信息，标签信息。。。
-        return new PageResult(page.getTotal(),page.getPages(),page.getRecords());
+        //返回帖子的作者信息，标签信息
+        List<Post> posts = page.getRecords();
+        List<PostVo> postVos = new ArrayList<>();
+        for(Post post:posts){
+            PostVo postVo=new PostVo();
+            BeanUtils.copyProperties(post,postVo);
+            postVo.setUsername(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getUsername());
+            postVo.setLearnerImage(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getImage());
+            List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("postId",post.getPostId()));
+            List<Tag> tags=new ArrayList<>();
+            for(TagPost tagPost:tagPosts){
+                tags.add(tagMapper.selectById(tagPost.getTagId()));
+            }
+            postVo.setTags(tags);
+            postVos.add(postVo);
+        }
+        return new PageResult(page.getTotal(),page.getPages(),postVos);
     }
 
     @Override
