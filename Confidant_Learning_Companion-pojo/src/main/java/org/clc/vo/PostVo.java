@@ -18,8 +18,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PostVo {
-    @Schema(title="数据库id主键")
-    private int id;
     @Schema(title="用户ID")
     private String uid;//用户ID
     @Schema(title="用户名")
