@@ -28,8 +28,6 @@ public class PostVo {
     private String postId;//帖子ID
     @Schema(title="标题")
     private String title;//标题
-    @Schema(title="内容")
-    private String content;//内容
     @Schema(title="点赞量")
     private Integer thumbs;//点赞量
     @Schema(title="插图")

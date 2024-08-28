@@ -15,5 +15,5 @@ import lombok.NoArgsConstructor;
 @Schema(title="帖子postId请求类")
 public class PostIdDto {
     @Schema(title="postId",type="String")
-    private String postId;//用户ID
+    private String postId;//帖子ID
 }

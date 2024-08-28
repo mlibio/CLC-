@@ -37,4 +37,5 @@ public class MessageConstant {
     public static final String NEW_PASSWORD_IS_THE_SAME_AS_THE_OLD_ONE = "新旧密码相同";
     public static final String THE_CONFIRMATION_IS_NOT_THE_SAME_AS_THE_NEW_PASSWORD = "两次新密码输入不同，请确认新密码";
 
+
 }

@@ -15,6 +15,7 @@ import org.clc.result.PageResult;
 import org.clc.result.Result;
 import org.clc.service.PostService;
 import org.clc.utils.OperationLogsUtil;
+import org.clc.vo.PostDetailVo;
 import org.clc.vo.PostVo;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +71,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             Page<Post> p = postMapper.selectPage(page, queryWrapper1);
             //返回帖子的作者信息，标签信息
             List<Post> posts = p.getRecords();
-            List<PostVo> postVos = getPostVos(posts);
+            List<PostVo> postVos = getPostsVo(posts);
             return new PageResult(p.getTotal(),p.getPages(),postVos);
         }else{
             return new PageResult(0,0,Collections.EMPTY_LIST);
@@ -83,7 +84,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         postMapper.selectList(new QueryWrapper<>());
         //返回帖子的作者信息，标签信息
         List<Post> posts = page.getRecords();
-        List<PostVo> postVos = getPostVos(posts);
+        List<PostVo> postVos = getPostsVo(posts);
         return new PageResult(page.getTotal(),page.getPages(),postVos);
     }
 
@@ -145,13 +146,24 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
     }
 
-    private Post selectByPostId(String postId) {
-        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("post_id", postId);
-        return postMapper.selectOne(queryWrapper);
+    @Override
+    public PostDetailVo getPostDetail(Post post) {
+        PostDetailVo postDetailVo=new PostDetailVo();
+        BeanUtils.copyProperties(post,postDetailVo);
+        postDetailVo.setUsername(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getUsername());
+        postDetailVo.setLearnerImage(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getImage());
+        List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("postId",post.getPostId()));
+        List<Tag> tags=new ArrayList<>();
+        for(TagPost tagPost:tagPosts){
+            tags.add(tagMapper.selectById(tagPost.getTagId()));
+        }
+        postDetailVo.setTags(tags);
+        return postDetailVo;
     }
 
-    private List<PostVo> getPostVos(List<Post> posts){
+
+    @Override
+    public List<PostVo> getPostsVo(List<Post> posts) {
         List<PostVo> postVos = new ArrayList<>();
         for(Post post:posts){
             PostVo postVo=new PostVo();
@@ -167,5 +179,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             postVos.add(postVo);
         }
         return postVos;
+    }
+
+    private Post selectByPostId(String postId) {
+        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("post_id", postId);
+        return postMapper.selectOne(queryWrapper);
     }
 }

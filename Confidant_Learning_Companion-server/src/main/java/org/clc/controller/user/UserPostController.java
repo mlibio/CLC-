@@ -1,15 +1,23 @@
 package org.clc.controller.user;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.clc.constant.MessageConstant;
 import org.clc.dto.PageQueryDto;
+import org.clc.dto.PostIdDto;
+import org.clc.entity.Post;
 import org.clc.result.PageResult;
 import org.clc.service.PostService;
+import org.clc.vo.PostDetailVo;
+import org.clc.vo.PostVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * @version 1.0
@@ -40,6 +48,21 @@ public class UserPostController {
         pageQueryDto.setPage(page);
         pageQueryDto.setPageSize(pageSize);
         return postService.getPosts(pageQueryDto);
+    }
+
+    @GetMapping("/detail")
+    @Operation(summary = "返回贴子详情的接口",
+            description  = "返回所给ID的帖子的详情",
+            responses = {@ApiResponse(responseCode = "200", description = "成功"),
+                    @ApiResponse(responseCode = "400", description = "请求错误"),
+                    @ApiResponse(responseCode = "401", description = "未授权"),
+                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+    public PostDetailVo getPost(@RequestBody PostIdDto postIdDto) {
+        try{
+            return postService.getPostDetail(postService.getOne(new QueryWrapper<Post>().eq("postId",postIdDto.getPostId())));
+        }catch (Exception e){
+            throw new RuntimeException(MessageConstant.NO_RESOURCES_EXIST);
+        }
     }
 
     @GetMapping("/favor")
