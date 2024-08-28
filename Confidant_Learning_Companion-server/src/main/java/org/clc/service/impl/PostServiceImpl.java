@@ -70,20 +70,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             Page<Post> p = postMapper.selectPage(page, queryWrapper1);
             //返回帖子的作者信息，标签信息
             List<Post> posts = p.getRecords();
-            List<PostVo> postVos = new ArrayList<>();
-            for(Post post:posts){
-                PostVo postVo=new PostVo();
-                BeanUtils.copyProperties(post,postVo);
-                postVo.setUsername(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getUsername());
-                postVo.setLearnerImage(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getImage());
-                List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("postId",post.getPostId()));
-                List<Tag> tags=new ArrayList<>();
-                for(TagPost tagPost:tagPosts){
-                    tags.add(tagMapper.selectById(tagPost.getTagId()));
-                }
-                postVo.setTags(tags);
-                postVos.add(postVo);
-            }
+            List<PostVo> postVos = getPostVos(posts);
             return new PageResult(p.getTotal(),p.getPages(),postVos);
         }else{
             return new PageResult(0,0,Collections.EMPTY_LIST);
@@ -96,20 +83,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         postMapper.selectList(new QueryWrapper<>());
         //返回帖子的作者信息，标签信息
         List<Post> posts = page.getRecords();
-        List<PostVo> postVos = new ArrayList<>();
-        for(Post post:posts){
-            PostVo postVo=new PostVo();
-            BeanUtils.copyProperties(post,postVo);
-            postVo.setUsername(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getUsername());
-            postVo.setLearnerImage(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getImage());
-            List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("postId",post.getPostId()));
-            List<Tag> tags=new ArrayList<>();
-            for(TagPost tagPost:tagPosts){
-                tags.add(tagMapper.selectById(tagPost.getTagId()));
-            }
-            postVo.setTags(tags);
-            postVos.add(postVo);
-        }
+        List<PostVo> postVos = getPostVos(posts);
         return new PageResult(page.getTotal(),page.getPages(),postVos);
     }
 
@@ -175,5 +149,23 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("post_id", postId);
         return postMapper.selectOne(queryWrapper);
+    }
+
+    private List<PostVo> getPostVos(List<Post> posts){
+        List<PostVo> postVos = new ArrayList<>();
+        for(Post post:posts){
+            PostVo postVo=new PostVo();
+            BeanUtils.copyProperties(post,postVo);
+            postVo.setUsername(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getUsername());
+            postVo.setLearnerImage(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getImage());
+            List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("postId",post.getPostId()));
+            List<Tag> tags=new ArrayList<>();
+            for(TagPost tagPost:tagPosts){
+                tags.add(tagMapper.selectById(tagPost.getTagId()));
+            }
+            postVo.setTags(tags);
+            postVos.add(postVo);
+        }
+        return postVos;
     }
 }
