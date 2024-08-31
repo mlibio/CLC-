@@ -17,6 +17,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Schema(title="帖子返回体")
 public class PostVo {
     @Schema(title="用户ID")
     private String uid;//用户ID

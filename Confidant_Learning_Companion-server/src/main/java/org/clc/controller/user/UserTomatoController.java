@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/user/tomato")
 @Slf4j
 @Tag(name = "番茄统计")
-public class TomatoController {
+public class UserTomatoController {
 
     @Autowired
     private TomatoService tomatoService;

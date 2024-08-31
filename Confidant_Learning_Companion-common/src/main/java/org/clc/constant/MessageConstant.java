@@ -21,6 +21,8 @@ public class MessageConstant {
     public static final String INVALID_FILE_TYPE = "图片类型错误，仅能上传PNG JPG JPEG类型图片";
     public static final String PREFIX_FOR_NAME = "CLC_";
     public static final String PREFIX_FOR_TASK = "TASK_";
+    public static final String PREFIX_FOR_COMMENT = "COMMENT_";
+    public static final String PREFIX_FOR_POST = "POST_";
     public static final String CHARS_FOR_NAME = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     public static final String INVALID_ACTION = "无效操作";
     public static final String INSUFFICIENT_PERMISSIONS = "权限不足";

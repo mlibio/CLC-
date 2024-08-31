@@ -8,12 +8,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.clc.constant.MessageConstant;
 import org.clc.dto.PageQueryDto;
+import org.clc.dto.PostDto;
 import org.clc.dto.PostIdDto;
 import org.clc.entity.Post;
 import org.clc.result.PageResult;
+import org.clc.result.Result;
 import org.clc.service.PostService;
 import org.clc.vo.PostDetailVo;
-import org.clc.vo.PostVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -82,4 +83,8 @@ public class UserPostController {
         return postService.getFavorPost(pageQueryDto);
     }
 
+    @PostMapping
+    public Result<String> addPost(@RequestBody PostDto postDto){
+        return postService.addPost(postDto);
+    }
 }

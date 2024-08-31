@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.clc.constant.MessageConstant;
 import org.clc.context.BaseContext;
 import org.clc.dto.PageQueryDto;
+import org.clc.dto.PostDto;
 import org.clc.dto.PostIdDto;
 import org.clc.entity.*;
 import org.clc.entity.enumeration.OperationType;
@@ -14,6 +15,7 @@ import org.clc.mapper.*;
 import org.clc.result.PageResult;
 import org.clc.result.Result;
 import org.clc.service.PostService;
+import org.clc.utils.MyRandomStringGenerator;
 import org.clc.utils.OperationLogsUtil;
 import org.clc.vo.PostDetailVo;
 import org.clc.vo.PostVo;
@@ -21,6 +23,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -179,6 +182,24 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             postVos.add(postVo);
         }
         return postVos;
+    }
+
+    @Override
+    public Result<String> addPost(PostDto postDto) {
+        Post post=new Post();
+        BeanUtils.copyProperties(postDto,post);
+        post.setUid(BaseContext.getCurrentId());
+        post.setPostId(MessageConstant.PREFIX_FOR_POST+MyRandomStringGenerator.generateRandomString(8));
+        post.setThumbs(0);
+        post.setStatus(true);
+        post.setCreateTime(LocalDateTime.now());
+        post.setUpdateTime(LocalDateTime.now());
+        try{
+            postMapper.insert(post);
+            return Result.success(MessageConstant.SUCCESS);
+        }catch (RuntimeException e){
+            return Result.error(500,MessageConstant.FAILED);
+        }
     }
 
     private Post selectByPostId(String postId) {

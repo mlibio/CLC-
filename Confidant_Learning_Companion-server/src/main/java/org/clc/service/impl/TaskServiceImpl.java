@@ -44,7 +44,6 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         task.setUid(BaseContext.getCurrentId());
         task.setCreateTime(LocalDateTime.now());
         task.setUpdateTime(LocalDateTime.now());
-
         taskMapper.insert(task);
         return Result.success(MessageConstant.SUCCESS);
     }

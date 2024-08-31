@@ -2,6 +2,7 @@ package org.clc.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.clc.dto.PageQueryDto;
+import org.clc.dto.PostDto;
 import org.clc.dto.PostIdDto;
 import org.clc.entity.Post;
 import org.clc.result.PageResult;
@@ -27,4 +28,6 @@ public interface PostService extends IService<Post> {
     PostDetailVo getPostDetail(Post post);
 
     List<PostVo> getPostsVo(List<Post> posts);
+
+    Result<String> addPost(PostDto postDto);
 }
