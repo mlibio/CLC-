@@ -53,6 +53,7 @@ public class AdminPostController {
     public Result<String> ban(@RequestBody @Parameter(description = "要封禁的postId") PostIdDto postIdDto){
         return postService.ban(postIdDto);
     }
+
     @PostMapping("/unban")
     @Operation(summary = "解封帖子的接口",
             description  = "输入要解封帖子的postId",

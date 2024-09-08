@@ -20,7 +20,7 @@ public class CommentVo {
     private String cId;//评论ID
     @Schema(title="用户名")
     private String username;//用户名
-    @Schema(title = "头像")
+    @Schema(title="头像")
     private String learnerImage;
     @Schema(title="详情")
     private String content;//详情

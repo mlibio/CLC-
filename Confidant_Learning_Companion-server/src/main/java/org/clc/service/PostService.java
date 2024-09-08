@@ -30,4 +30,6 @@ public interface PostService extends IService<Post> {
     List<PostVo> getPostsVo(List<Post> posts);
 
     Result<String> addPost(PostDto postDto);
+
+    void thumbComment(String postId);
 }

@@ -155,7 +155,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         BeanUtils.copyProperties(post,postDetailVo);
         postDetailVo.setUsername(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getUsername());
         postDetailVo.setLearnerImage(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getImage());
-        List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("postId",post.getPostId()));
+        List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("post_id",post.getPostId()));
         List<Tag> tags=new ArrayList<>();
         for(TagPost tagPost:tagPosts){
             tags.add(tagMapper.selectById(tagPost.getTagId()));
@@ -173,7 +173,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             BeanUtils.copyProperties(post,postVo);
             postVo.setUsername(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getUsername());
             postVo.setLearnerImage(learnerMapper.selectOne(new QueryWrapper<Learner>().eq("uid",post.getUid())).getImage());
-            List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("postId",post.getPostId()));
+            List<TagPost> tagPosts=tagPostMapper.selectList(new QueryWrapper<TagPost>().eq("post_id",post.getPostId()));
             List<Tag> tags=new ArrayList<>();
             for(TagPost tagPost:tagPosts){
                 tags.add(tagMapper.selectById(tagPost.getTagId()));
@@ -200,6 +200,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }catch (RuntimeException e){
             return Result.error(500,MessageConstant.FAILED);
         }
+    }
+
+    @Override
+    public void thumbComment(String postId) {
+        Post post=postMapper.selectOne(new QueryWrapper<Post>().eq("post_id",postId));
+        post.setThumbs(post.getThumbs() + 1);
+        postMapper.updateById(post);
     }
 
     private Post selectByPostId(String postId) {
