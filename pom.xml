@@ -13,8 +13,8 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
-        <module>Confidant_Learning_Companion-common</module>
         <module>Confidant_Learning_Companion-pojo</module>
+        <module>Confidant_Learning_Companion-common</module>
         <module>Confidant_Learning_Companion-server</module>
     </modules>
     <name>Confidant_Learning_Companion</name>
@@ -46,6 +46,8 @@
         <pagehelper>1.4.6</pagehelper>
         <springdoc>2.0.2</springdoc>
         <aspectj>1.9.7</aspectj>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
     <dependencies>
         <dependency>
@@ -144,12 +146,23 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>
+                        org.clc.server.ConfidantLearningCompanionServerApplication
+                    </mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <skipTests>true</skipTests>    <!--默认关掉单元测试 -->
                 </configuration>
             </plugin>
         </plugins>
