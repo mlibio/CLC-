@@ -16,6 +16,7 @@ import org.clc.common.result.Result;
 import org.clc.server.service.PostService;
 import org.clc.pojo.vo.PostDetailVo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -56,9 +57,9 @@ public class UserPostController {
                     @ApiResponse(responseCode = "400", description = "请求错误"),
                     @ApiResponse(responseCode = "401", description = "未授权"),
                     @ApiResponse(responseCode = "500", description = "服务器错误")})
-    public PostDetailVo getPost(@RequestBody PostIdDto postIdDto) {
+    public PostDetailVo getPost(String postId) {
         try{
-            return postService.getPostDetail(postService.getOne(new QueryWrapper<Post>().eq("postId",postIdDto.getPostId())));
+            return postService.getPostDetail(postService.getOne(new QueryWrapper<Post>().eq("post_id",postId)));
         }catch (Exception e){
             throw new RuntimeException(MessageConstant.NO_RESOURCES_EXIST);
         }

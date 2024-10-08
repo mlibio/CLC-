@@ -6,13 +6,18 @@ import org.clc.common.constant.MessageConstant;
 import org.clc.common.context.BaseContext;
 import org.clc.pojo.dto.CommentDto;
 import org.clc.pojo.entity.Comment;
+import org.clc.pojo.entity.Learner;
+import org.clc.pojo.entity.Post;
 import org.clc.server.mapper.CommentMapper;
 import org.clc.server.service.CommentService;
 import org.clc.common.result.Result;
 import org.clc.common.utils.MyRandomStringGenerator;
 import org.clc.pojo.vo.CommentVo;
+import org.clc.server.service.LearnerService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -28,6 +33,12 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     @Autowired
     private CommentMapper commentMapper;
+
+    @Autowired
+    private LearnerService learnerService;
+
+    @Autowired
+    private RedisTemplate<String, Integer> redisTemplate;
 
     @Override
     public Result<String> addComment(CommentDto commentDto) {
@@ -54,6 +65,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         List<CommentVo> commentVoList = new ArrayList<>();
         for (Comment comment : commentList) {
             CommentVo commentVo = new CommentVo();
+            Learner learner = learnerService.getLearnerByUid(comment.getUid());
+            commentVo.setUsername(learner.getUsername());
+            commentVo.setLearnerImage(learner.getImage());
             BeanUtils.copyProperties(comment, commentVo);
             commentVoList.add(commentVo);
         }
@@ -64,6 +78,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     public Result<String> deleteCommentByCId(String cId) {
         try{
             commentMapper.delete(new QueryWrapper<Comment>().eq("c_id", cId));
+            // 删除 Redis 中的缓存数据
+            redisTemplate.delete(cId);
             return Result.success(MessageConstant.SUCCESS);
         }catch (RuntimeException e){
             log.error(e.getMessage());
@@ -73,9 +89,18 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     @Override
     public void thumbComment(String cId) {
-        Comment comment = commentMapper.selectOne(new QueryWrapper<Comment>().eq("c_id", cId));
-        comment.setThumbs(comment.getThumbs() + 1);
-        commentMapper.updateById(comment);
+        // 使用cId作为key，从Redis中获取点赞数
+        Integer likes = redisTemplate.opsForValue().get(cId);
+        if (likes == null) {
+            // 如果Redis中没有记录，需要从数据库加载初始值
+            likes = commentMapper.selectOne(new QueryWrapper<Comment>().eq("c_id", cId)).getThumbs();
+        }
+        // 点赞数加一
+        likes++;
+        // 将更新后的点赞数存回Redis
+        redisTemplate.opsForValue().set(cId, likes);
+        // 异步更新数据库
+        updateLikesInDatabaseAsync(cId, likes);
     }
 
     @Override
@@ -87,5 +112,12 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             log.error(e.getMessage());
             return Result.error(500,MessageConstant.FAILED);
         }
+    }
+
+    @Async
+    protected void updateLikesInDatabaseAsync(String cId, Integer likes) {
+        Comment comment = commentMapper.selectOne(new QueryWrapper<Comment>().eq("c_id", cId));
+        comment.setThumbs(likes);
+        commentMapper.updateById(comment);
     }
 }

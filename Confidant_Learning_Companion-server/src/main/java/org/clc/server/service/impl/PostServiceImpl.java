@@ -14,15 +14,15 @@ import org.clc.pojo.entity.enumeration.OperationType;
 import org.clc.server.mapper.*;
 import org.clc.common.result.PageResult;
 import org.clc.common.result.Result;
-import org.clc.server.mapper.*;
 import org.clc.server.service.PostService;
-import org.clc.server.mapper.*;
 import org.clc.common.utils.MyRandomStringGenerator;
 import org.clc.common.utils.OperationLogsUtil;
 import org.clc.pojo.vo.PostDetailVo;
 import org.clc.pojo.vo.PostVo;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -55,6 +55,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Autowired
     private OperationLogsMapper operationLogsMapper;
 
+    @Autowired
+    private RedisTemplate<String, Integer> redisTemplate;
+
     @Override
     public PageResult getFavorPost(PageQueryDto pageQueryDto) {
         String uid= BaseContext.getCurrentId();
@@ -86,11 +89,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Override
     public PageResult getPosts(PageQueryDto pageQueryDto) {
         Page<Post> page=Page.of(pageQueryDto.getPage(),pageQueryDto.getPageSize());
-        postMapper.selectList(new QueryWrapper<>());
+        Page<Post> p=postMapper.selectPage(page,new QueryWrapper<>());
         //返回帖子的作者信息，标签信息
-        List<Post> posts = page.getRecords();
+        List<Post> posts = p.getRecords();
         List<PostVo> postVos = getPostsVo(posts);
-        return new PageResult(page.getTotal(),page.getPages(),postVos);
+        return new PageResult(p.getTotal(),p.getPages(),postVos);
     }
 
     @Override
@@ -98,6 +101,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         String postId=postIdDto.getPostId();
         Post post=selectByPostId(postId);
         post.setStatus(false);
+        // 删除 Redis 中的缓存数据
+        redisTemplate.delete(postId);
         try {
             postMapper.updateById(post);
             //建立操作日志
@@ -206,8 +211,24 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public void thumbComment(String postId) {
-        Post post=postMapper.selectOne(new QueryWrapper<Post>().eq("post_id",postId));
-        post.setThumbs(post.getThumbs() + 1);
+        // 使用postId作为key，从Redis中获取点赞数
+        Integer likes = redisTemplate.opsForValue().get(postId);
+        if (likes == null) {
+            // 如果Redis中没有记录，需要从数据库加载初始值
+            likes = selectByPostId(postId).getThumbs();
+        }
+        // 点赞数加一
+        likes++;
+        // 将更新后的点赞数存回Redis
+        redisTemplate.opsForValue().set(postId, likes);
+        // 异步更新数据库
+        updateLikesInDatabaseAsync(postId, likes);
+    }
+
+    @Async
+    protected void updateLikesInDatabaseAsync(String postId, Integer likes) {
+        Post post=selectByPostId(postId);
+        post.setThumbs(likes);
         postMapper.updateById(post);
     }
 
