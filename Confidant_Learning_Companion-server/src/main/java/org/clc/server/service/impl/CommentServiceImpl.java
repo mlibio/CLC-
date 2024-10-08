@@ -106,6 +106,13 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Override
     public Result<String> deleteCommentByPostId(String postId) {
         try{
+            // 删除 Redis 中的缓存数据
+            redisTemplate.delete(postId);
+            List<Comment> comments = commentMapper.selectList(new QueryWrapper<Comment>().eq("post_id", postId));
+            for(Comment comment : comments){
+                redisTemplate.delete(comment.getCId());
+            }
+            // 删除相关评论
             commentMapper.delete(new QueryWrapper<Comment>().eq("post_id", postId));
             return Result.success(MessageConstant.SUCCESS);
         }catch (RuntimeException e){
