@@ -103,4 +103,32 @@ public class UserPostController {
     public void thumbComment(String postId){
         postService.thumbComment(postId);
     }
+
+    @PostMapping("/unThumb")
+    @Operation(summary = "取消点赞接口",
+            description  = "取消给定编号的帖子的点赞",
+            responses = {@ApiResponse(responseCode = "200", description = "成功"),
+                    @ApiResponse(responseCode = "400", description = "请求错误"),
+                    @ApiResponse(responseCode = "401", description = "未授权"),
+                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+    public void unThumbComment(String postId){
+        postService.unThumbComment(postId);
+    }
+
+    @GetMapping("/hot")
+    @Operation(summary = "获取热门帖子列表接口",
+            description  = "获取热门帖子列表",
+            responses = {@ApiResponse(responseCode = "200", description = "成功"),
+                    @ApiResponse(responseCode = "400", description = "请求错误"),
+                    @ApiResponse(responseCode = "401", description = "未授权"),
+                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+    public PageResult getHotPosts(@Parameter(description = "页数", required = true)
+                                      @RequestParam(value = "page",defaultValue = "1") int page,
+                                  @Parameter(description = "页码大小", required = true)
+                                      @RequestParam(value = "pageSize",defaultValue = "5") int pageSize) {
+        PageQueryDto pageQueryDto = new PageQueryDto();
+        pageQueryDto.setPage(page);
+        pageQueryDto.setPageSize(pageSize);
+        return postService.getHotPosts(pageQueryDto);
+    }
 }

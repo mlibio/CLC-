@@ -1,6 +1,7 @@
 package org.clc.common.utils;
 
 import org.clc.common.constant.MessageConstant;
+import org.clc.common.constant.StringConstant;
 
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -23,7 +24,7 @@ public class MyRandomStringGenerator {
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; ++i) {
             int randomIndex = ThreadLocalRandom.current().nextInt(LOWER_BOUND, UPPER_BOUND);
-            sb.append(MessageConstant.CHARS_FOR_NAME.charAt(randomIndex));
+            sb.append(StringConstant.CHARS_FOR_NAME.charAt(randomIndex));
         }
         return sb.toString();
     }

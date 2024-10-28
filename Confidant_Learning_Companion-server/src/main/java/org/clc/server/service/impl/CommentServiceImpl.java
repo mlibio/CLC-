@@ -3,6 +3,7 @@ package org.clc.server.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.clc.common.constant.MessageConstant;
+import org.clc.common.constant.StringConstant;
 import org.clc.common.context.BaseContext;
 import org.clc.pojo.dto.CommentDto;
 import org.clc.pojo.entity.Comment;
@@ -46,7 +47,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         BeanUtils.copyProperties(commentDto, comment);
         comment.setCreateTime(LocalDateTime.now());
         comment.setUid(BaseContext.getCurrentId());
-        comment.setCId(MessageConstant.PREFIX_FOR_COMMENT +MyRandomStringGenerator.generateRandomString(8));
+        comment.setCId(StringConstant.PREFIX_FOR_COMMENT +MyRandomStringGenerator.generateRandomString(8));
         comment.setThumbs(0);
         try{
             this.save(comment);

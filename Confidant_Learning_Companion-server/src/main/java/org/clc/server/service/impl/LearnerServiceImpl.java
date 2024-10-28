@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.clc.common.constant.StringConstant;
 import org.clc.common.constant.MessageConstant;
 import org.clc.common.context.BaseContext;
 import org.clc.pojo.dto.*;
@@ -68,7 +69,7 @@ public class LearnerServiceImpl extends ServiceImpl<LearnerMapper, Learner> impl
             String uid= MyRandomStringGenerator.generateRandomString(8);
             learner.setUid(uid);//Uid：********
             if (learner.getUsername() == null) {
-                learner.setUsername(MessageConstant.PREFIX_FOR_NAME + uid);
+                learner.setUsername(StringConstant.PREFIX_FOR_NAME + uid);
             }
             if(learner.getPhone()!=null && !learner.getPhone().isEmpty()){//检查手机号是否已存在
                 Learner learner1=getLearnerByPhone(learner.getPhone());

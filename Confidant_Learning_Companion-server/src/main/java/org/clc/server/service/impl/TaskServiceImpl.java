@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.clc.common.constant.MessageConstant;
+import org.clc.common.constant.StringConstant;
 import org.clc.common.context.BaseContext;
 import org.clc.pojo.dto.PageQueryDto;
 import org.clc.pojo.dto.TaskUpdateDto;
@@ -37,7 +38,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
 
     @Override
     public Result<String> insertWithTime(Task task) {
-        task.setTaskId(MessageConstant.PREFIX_FOR_TASK+ MyRandomStringGenerator.generateRandomString(8));
+        task.setTaskId(StringConstant.PREFIX_FOR_TASK+ MyRandomStringGenerator.generateRandomString(8));
         task.setUid(BaseContext.getCurrentId());
         task.setCreateTime(LocalDateTime.now());
         task.setUpdateTime(LocalDateTime.now());

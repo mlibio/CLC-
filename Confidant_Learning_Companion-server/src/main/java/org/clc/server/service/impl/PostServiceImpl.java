@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.clc.common.constant.MessageConstant;
+import org.clc.common.constant.StringConstant;
 import org.clc.common.context.BaseContext;
 import org.clc.pojo.dto.PageQueryDto;
 import org.clc.pojo.dto.PostDto;
@@ -22,13 +23,14 @@ import org.clc.pojo.vo.PostVo;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @version 1.0
@@ -56,7 +58,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private OperationLogsMapper operationLogsMapper;
 
     @Autowired
-    private RedisTemplate<String, Integer> redisTemplate;
+    private RedisTemplate<String, String> redisTemplate;
 
     @Override
     public PageResult getFavorPost(PageQueryDto pageQueryDto) {
@@ -99,7 +101,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Override
     public Result<String> ban(PostIdDto postIdDto) {
         String postId=postIdDto.getPostId();
-        Post post=selectByPostId(postId);
+        Post post=selectPostsByPostIds(List.of(postId)).get(0);
         post.setStatus(false);
         // 删除 Redis 中的缓存数据
         redisTemplate.delete(postId);
@@ -130,7 +132,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Override
     public Result<String> unban(PostIdDto postIdDto) {
         String postId=postIdDto.getPostId();
-        Post post=selectByPostId(postId);
+        Post post=selectPostsByPostIds(List.of(postId)).get(0);
         post.setStatus(true);
         try {
             postMapper.updateById(post);
@@ -196,7 +198,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         Post post=new Post();
         BeanUtils.copyProperties(postDto,post);
         post.setUid(BaseContext.getCurrentId());
-        post.setPostId(MessageConstant.PREFIX_FOR_POST+MyRandomStringGenerator.generateRandomString(8));
+        post.setPostId(StringConstant.PREFIX_FOR_POST+MyRandomStringGenerator.generateRandomString(8));
         post.setThumbs(0);
         post.setStatus(true);
         post.setCreateTime(LocalDateTime.now());
@@ -209,32 +211,194 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
     }
 
+    /**
+     * 获取最热帖子
+     */
+    @Override
+    public PageResult getHotPosts(PageQueryDto pageQueryDto) {
+        String key = StringConstant.PREFIX_FOR_CACHE_LIKES;
+        // 分页获取按点赞数排序的帖子ID列表
+        int pageNumber = pageQueryDto.getPage();
+        int pageSize = pageQueryDto.getPageSize();
+        // 计算起始索引和结束索引
+        long start = (long) (pageNumber - 1) * pageSize;
+        long end = ((long) pageNumber * pageSize - 1);
+        Set<ZSetOperations.TypedTuple<String>> tuples;
+        try {
+            tuples = redisTemplate.opsForZSet().reverseRangeWithScores(key, start, end);
+        } catch (Exception e) {
+            tuples = null;
+            // 处理Redis异常
+            log.error(MessageConstant.FAILED_TO_FETCH_DATA_FROM_REDIS, e);
+        }// 根据ID获取帖子
+        List<Post> posts = new ArrayList<>();
+        if (tuples != null) {
+            for (ZSetOperations.TypedTuple<String> tuple : tuples) {
+                String postId = tuple.getValue();
+                // 如果Redis中没有数据，getPostFromCache方法会从数据库中加载并缓存
+                Post post = getPostFromCache(postId);
+                posts.add(post);
+            }
+        }else{
+            PageResult pageResult = new PageResult();
+            pageResult.setTotal(0L);
+            pageResult.setPages(0L);
+            pageResult.setRecords(Collections.EMPTY_LIST);
+            return pageResult;
+        }
+        // 转换为PostVo列表
+        List<PostVo> postVos = getPostsVo(posts);
+        // 计算总记录数
+        Long total = null;
+        if (redisTemplate != null) {
+            total = redisTemplate.opsForZSet().zCard(key);
+        }
+        // 如果 total 为 null，设置默认值
+        if (total == null) {
+            total = 0L;
+        }
+        // 计算总页数
+        long pages = (total + pageSize - 1) / pageSize; // 向上取整
+        // 构建PageResult对象
+        PageResult pageResult = new PageResult();
+        pageResult.setTotal(total);
+        pageResult.setPages(pages);
+        pageResult.setRecords(postVos);
+        return pageResult;
+    }
+
+    /**
+     * 更新帖子点赞数
+     */
+    public void updateLikesInDatabase(Map<String, Double> likesMap) {
+        if (likesMap == null || likesMap.isEmpty()) {
+            return; // 如果没有需要更新的数据，直接返回
+        }
+        // 一次性获取所有需要更新的帖子
+        List<Post> posts = selectPostsByPostIds(new ArrayList<>(likesMap.keySet()));
+        // 更新每个帖子的点赞数
+        for (Post post : posts) {
+            if (likesMap.containsKey(post.getPostId())) {
+                post.setThumbs(likesMap.get(post.getPostId()).intValue());
+            }
+        }
+        // 批量更新帖子
+        try {
+            for (Post post : posts) {
+                updateById(post);
+            }
+        } catch (Exception e) {
+            // 处理异常，例如记录日志或抛出自定义异常
+            throw new RuntimeException(MessageConstant.FAILED, e);
+        }
+    }
+
+    public List<Post> selectPostsByPostIds(List<String> postIds) {
+        if (postIds == null || postIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("post_id", postIds);
+        return postMapper.selectList(queryWrapper);
+    }
+
+    /**
+     * 将Post存储到Redis中
+     */
+    public void cachePost(Post post) {
+        String key = StringConstant.PREFIX_FOR_CACHE + post.getId();
+        Map<String, String> postMap = new HashMap<>();
+        postMap.put("uid", post.getUid());
+        postMap.put("postId", post.getPostId());
+        postMap.put("title", post.getTitle());
+        postMap.put("content", post.getContent());
+        postMap.put("thumbs", String.valueOf(post.getThumbs()));
+        postMap.put("status", String.valueOf(post.getStatus()));
+        postMap.put("image", post.getImage());
+        postMap.put("createTime", post.getCreateTime().toString());
+        postMap.put("updateTime", post.getUpdateTime().toString());
+        redisTemplate.opsForHash().putAll(key, postMap);
+        // 设置键过期时间为一周
+        redisTemplate.expire(key, 7, TimeUnit.DAYS);
+    }
+
+    /**
+     * 实现点赞功能
+     */
     @Override
     public void thumbComment(String postId) {
-        // 使用postId作为key，从Redis中获取点赞数
-        Integer likes = redisTemplate.opsForValue().get(postId);
-        if (likes == null) {
-            // 如果Redis中没有记录，需要从数据库加载初始值
-            likes = selectByPostId(postId).getThumbs();
-        }
+        // 使用postId作为key，从Redis的ZSet中获取点赞数
+        int likes = getThumbFromCache(postId);
         // 点赞数加一
+        //TODO：添加点赞人，被点赞贴，点赞状态
         likes++;
-        // 将更新后的点赞数存回Redis
-        redisTemplate.opsForValue().set(postId, likes);
-        // 异步更新数据库
-        updateLikesInDatabaseAsync(postId, likes);
+        // 将更新后的点赞数存回Redis的ZSet
+        redisTemplate.opsForZSet().add(StringConstant.PREFIX_FOR_CACHE_LIKES, postId, likes);
+    }
+    /**
+     * 实现取消点赞功能
+     */
+    @Override
+    public void unThumbComment(String postId) {
+        // 使用postId作为key，从Redis的ZSet中获取点赞数
+        int likes = getThumbFromCache(postId);
+        // 点赞数减一
+        //TODO：删除点赞人，被点赞贴，点赞状态
+        likes--;
+        // 将更新后的点赞数存回Redis的ZSet
+        redisTemplate.opsForZSet().add(StringConstant.PREFIX_FOR_CACHE_LIKES, postId, likes);
     }
 
-    @Async
-    protected void updateLikesInDatabaseAsync(String postId, Integer likes) {
-        Post post=selectByPostId(postId);
-        post.setThumbs(likes);
-        postMapper.updateById(post);
+    /**
+     * 从Redis中取出thumb
+     */
+    private int getThumbFromCache(String postId) {
+        Double score = redisTemplate.opsForZSet().score(StringConstant.PREFIX_FOR_CACHE_LIKES, postId);
+        int likes;
+        if (score == null) {
+            // 如果Redis中没有记录，从数据库中加载并缓存
+            Post post = selectPostsByPostIds(List.of(postId)).get(0);
+            cacheThumbs(post.getPostId(),post.getThumbs());
+            likes = post.getThumbs();
+        } else {
+            likes = score.intValue();
+        }
+        return likes;
     }
-
-    private Post selectByPostId(String postId) {
-        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("post_id", postId);
-        return postMapper.selectOne(queryWrapper);
+    /**
+     * 将thumb存储到Redis中
+     */
+    private void cacheThumbs(String postId, Integer thumbs) {
+        redisTemplate.opsForZSet().add(StringConstant.PREFIX_FOR_CACHE_LIKES, postId, thumbs);
+    }
+    /**
+     * 从Redis中取出Post
+     */
+    public Post getPostFromCache(String postId) {
+        String key = StringConstant.PREFIX_FOR_CACHE + postId;
+        Map<Object, Object> postMap = redisTemplate.opsForHash().entries(key);
+        if (postMap.isEmpty()) {
+            // 如果Redis中没有数据，从数据库中加载并缓存
+            Post post = selectPostsByPostIds(List.of(postId)).get(0);
+            cachePost(post);
+            return post;
+        }
+        return convertToPost(postMap);
+    }
+    /**
+     * 将从Redis中取出的键值对转为Post
+     */
+    private Post convertToPost(Map<Object, Object> postMap) {
+        Post post = new Post();
+        post.setUid((String) postMap.get("uid"));
+        post.setPostId((String) postMap.get("postId"));
+        post.setTitle((String) postMap.get("title"));
+        post.setContent((String) postMap.get("content"));
+        post.setThumbs(Integer.parseInt((String) postMap.get("thumbs")));
+        post.setStatus(Boolean.parseBoolean((String) postMap.get("status")));
+        post.setImage((String) postMap.get("image"));
+        post.setCreateTime(LocalDateTime.parse((String) postMap.get("createTime")));
+        post.setUpdateTime(LocalDateTime.parse((String) postMap.get("updateTime")));
+        return post;
     }
 }

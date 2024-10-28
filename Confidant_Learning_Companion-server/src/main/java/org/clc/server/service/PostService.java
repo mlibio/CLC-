@@ -11,12 +11,15 @@ import org.clc.pojo.vo.PostDetailVo;
 import org.clc.pojo.vo.PostVo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @version 1.0
- * @description: TODO
  */
 public interface PostService extends IService<Post> {
+    /**
+     * 获取收藏帖子
+     */
     PageResult getFavorPost(PageQueryDto pageQueryDto);
 
     PageResult getPosts(PageQueryDto pageQueryDto);
@@ -31,5 +34,30 @@ public interface PostService extends IService<Post> {
 
     Result<String> addPost(PostDto postDto);
 
+    /**
+     * 点赞
+     */
     void thumbComment(String postId);
+
+    /**
+     * 获取热帖
+     */
+    PageResult getHotPosts(PageQueryDto pageQueryDto);
+
+    List<Post> selectPostsByPostIds(List<String> postIds);
+
+    /**
+     * 缓存帖子
+     */
+    void cachePost(Post post);
+
+    /**
+     * 取消点赞
+     */
+    void unThumbComment(String postId);
+
+    /**
+     * 同步点赞数据到数据库
+     */
+    void updateLikesInDatabase(Map<String, Double> likesMap);
 }
