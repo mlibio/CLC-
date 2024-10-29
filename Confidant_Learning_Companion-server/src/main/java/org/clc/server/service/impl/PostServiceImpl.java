@@ -293,6 +293,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
     }
 
+    @Override
+    public Result<String> updatePost(PostDto postDto) {
+        //TODO：更新帖子，注意Redis与数据库的数据一致性问题
+        return Result.success(MessageConstant.SUCCESS);
+    }
+
     public List<Post> selectPostsByPostIds(List<String> postIds) {
         if (postIds == null || postIds.isEmpty()) {
             return Collections.emptyList();
@@ -306,7 +312,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
      * 将Post存储到Redis中
      */
     public void cachePost(Post post) {
-        String key = StringConstant.PREFIX_FOR_CACHE + post.getId();
+        String key = StringConstant.PREFIX_FOR_CACHE + post.getPostId();
         Map<String, String> postMap = new HashMap<>();
         postMap.put("uid", post.getUid());
         postMap.put("postId", post.getPostId());

@@ -60,4 +60,6 @@ public interface PostService extends IService<Post> {
      * 同步点赞数据到数据库
      */
     void updateLikesInDatabase(Map<String, Double> likesMap);
+
+    Result<String> updatePost(PostDto postDto);
 }

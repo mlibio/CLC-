@@ -93,6 +93,15 @@ public class UserPostController {
         return postService.addPost(postDto);
     }
 
+    @PostMapping("/update")
+    @Operation(summary = "更新帖子接口",
+            description  = "更新帖子",
+            responses = {@ApiResponse(responseCode = "200", description = "成功"),
+                    @ApiResponse(responseCode = "400", description = "请求错误"),
+                    @ApiResponse(responseCode = "401", description = "未授权"),
+                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+    public Result<String> updatePost(@RequestBody PostDto postDto){return postService.updatePost(postDto);}
+
     @PostMapping("/thumb")
     @Operation(summary = "点赞帖子接口",
             description  = "点赞给定编号的帖子",

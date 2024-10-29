@@ -2,6 +2,7 @@ package org.clc.server.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.annotation.Resource;
 import org.clc.common.constant.MessageConstant;
 import org.clc.common.constant.StringConstant;
 import org.clc.common.context.BaseContext;
@@ -38,7 +39,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private LearnerService learnerService;
 
-    @Autowired
+    @Resource
     private RedisTemplate<String, Integer> redisTemplate;
 
     @Override
