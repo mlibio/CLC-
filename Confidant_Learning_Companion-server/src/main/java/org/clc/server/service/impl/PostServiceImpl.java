@@ -4,28 +4,33 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.annotation.Resource;
 import org.clc.common.constant.MessageConstant;
+import org.clc.common.constant.QueueConstant;
+import org.clc.common.constant.RedisKeyConstant;
 import org.clc.common.constant.StringConstant;
 import org.clc.common.context.BaseContext;
 import org.clc.pojo.dto.PageQueryDto;
 import org.clc.pojo.dto.PostDto;
 import org.clc.pojo.dto.PostIdDto;
+import org.clc.pojo.dto.PostUpdateDto;
 import org.clc.pojo.entity.*;
-import org.clc.pojo.entity.enumeration.OperationType;
+import org.clc.pojo.message.PostLikeMessage;
+import org.clc.pojo.message.PostUpdateMessage;
 import org.clc.server.mapper.*;
 import org.clc.common.result.PageResult;
 import org.clc.common.result.Result;
 import org.clc.server.service.PostService;
 import org.clc.common.utils.MyRandomStringGenerator;
-import org.clc.common.utils.OperationLogsUtil;
 import org.clc.pojo.vo.PostDetailVo;
 import org.clc.pojo.vo.PostVo;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -34,7 +39,6 @@ import java.util.stream.Collectors;
 
 /**
  * @version 1.0
- * @description: TODO
  */
 @Service
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements PostService {
@@ -55,10 +59,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private LearnerFavorPostMapper learnerFavorPostMapper;
 
     @Autowired
-    private OperationLogsMapper operationLogsMapper;
+    private RedisTemplate<String, String> redisTemplate;
+
+    @Resource
+    private RabbitTemplate rabbitTemplate;
 
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    private PostLikeMapper postLikeMapper;
 
     @Override
     public PageResult getFavorPost(PageQueryDto pageQueryDto) {
@@ -76,8 +83,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
         if(!postIdList.isEmpty()){
             Page<Post> page=Page.of(pageQueryDto.getPage(),pageQueryDto.getPageSize());
-            LambdaQueryWrapper<Post> queryWrapper1 = new LambdaQueryWrapper<>();
-            queryWrapper.in("post_id", postIdList);
+            QueryWrapper<Post> queryWrapper1 = new QueryWrapper<>();
+            queryWrapper1.in("post_id", postIdList);
+            queryWrapper1.eq("status", 1);
             Page<Post> p = postMapper.selectPage(page, queryWrapper1);
             //返回帖子的作者信息，标签信息
             List<Post> posts = p.getRecords();
@@ -87,48 +95,29 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             return new PageResult(0,0,Collections.EMPTY_LIST);
         }
     }
-
     @Override
     public PageResult getPosts(PageQueryDto pageQueryDto) {
         Page<Post> page=Page.of(pageQueryDto.getPage(),pageQueryDto.getPageSize());
-        Page<Post> p=postMapper.selectPage(page,new QueryWrapper<>());
+        Page<Post> p=postMapper.selectPage(page,new QueryWrapper<Post>().eq("status",1));
         //返回帖子的作者信息，标签信息
         List<Post> posts = p.getRecords();
         List<PostVo> postVos = getPostsVo(posts);
         return new PageResult(p.getTotal(),p.getPages(),postVos);
     }
-
     @Override
     public Result<String> ban(PostIdDto postIdDto) {
         String postId=postIdDto.getPostId();
         Post post=selectPostsByPostIds(List.of(postId)).get(0);
         post.setStatus(false);
         // 删除 Redis 中的缓存数据
-        redisTemplate.delete(postId);
+        redisTemplate.delete(RedisKeyConstant.PREFIX_FOR_CACHE_POST + postId);
         try {
             postMapper.updateById(post);
-            //建立操作日志
-            OperationLogs operationLogs= OperationLogsUtil.buildOperationLog(
-                    OperationType.BAN_POST,
-                    postIdDto.getPostId(),
-                    true,
-                    MessageConstant.SUCCESS
-            );
-            operationLogsMapper.insert(operationLogs);//添加操作日志
             return Result.success();
         } catch (Exception e) {
-            //建立操作日志
-            OperationLogs operationLogs= OperationLogsUtil.buildOperationLog(
-                    OperationType.BAN_POST,
-                    postIdDto.getPostId(),
-                    false,
-                    e.getMessage()
-            );
-            operationLogsMapper.insert(operationLogs);//添加操作日志
             return Result.error(500,MessageConstant.FAILED);
         }
     }
-
     @Override
     public Result<String> unban(PostIdDto postIdDto) {
         String postId=postIdDto.getPostId();
@@ -136,28 +125,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         post.setStatus(true);
         try {
             postMapper.updateById(post);
-            //建立操作日志
-            OperationLogs operationLogs= OperationLogsUtil.buildOperationLog(
-                    OperationType.UNBAN_USER,
-                    postIdDto.getPostId(),
-                    true,
-                    MessageConstant.SUCCESS
-            );
-            operationLogsMapper.insert(operationLogs);//添加操作日志
             return Result.success();
         } catch (Exception e) {
-            //建立操作日志
-            OperationLogs operationLogs= OperationLogsUtil.buildOperationLog(
-                    OperationType.UNBAN_USER,
-                    postIdDto.getPostId(),
-                    false,
-                    e.getMessage()
-            );
-            operationLogsMapper.insert(operationLogs);//添加操作日志
             return Result.error(500,MessageConstant.FAILED);
         }
     }
-
     @Override
     public PostDetailVo getPostDetail(Post post) {
         PostDetailVo postDetailVo=new PostDetailVo();
@@ -172,8 +144,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         postDetailVo.setTags(tags);
         return postDetailVo;
     }
-
-
     @Override
     public List<PostVo> getPostsVo(List<Post> posts) {
         List<PostVo> postVos = new ArrayList<>();
@@ -192,7 +162,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
         return postVos;
     }
-
     @Override
     public Result<String> addPost(PostDto postDto) {
         Post post=new Post();
@@ -210,13 +179,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             return Result.error(500,MessageConstant.FAILED);
         }
     }
-
     /**
      * 获取最热帖子
      */
     @Override
     public PageResult getHotPosts(PageQueryDto pageQueryDto) {
-        String key = StringConstant.PREFIX_FOR_CACHE_LIKES;
+        String key = RedisKeyConstant.PREFIX_FOR_CACHE_LIKES;
         // 分页获取按点赞数排序的帖子ID列表
         int pageNumber = pageQueryDto.getPage();
         int pageSize = pageQueryDto.getPageSize();
@@ -266,10 +234,10 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         pageResult.setRecords(postVos);
         return pageResult;
     }
-
     /**
      * 更新帖子点赞数
      */
+    @Transactional
     public void updateLikesInDatabase(Map<String, Double> likesMap) {
         if (likesMap == null || likesMap.isEmpty()) {
             return; // 如果没有需要更新的数据，直接返回
@@ -288,31 +256,86 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
                 updateById(post);
             }
         } catch (Exception e) {
-            // 处理异常，例如记录日志或抛出自定义异常
+            // 处理异常
+            log.error(MessageConstant.FAILED, e);
             throw new RuntimeException(MessageConstant.FAILED, e);
         }
     }
-
+    /**
+     * 更新帖子，异步更新缓存
+     * @return
+     */
     @Override
-    public Result<String> updatePost(PostDto postDto) {
-        //TODO：更新帖子，注意Redis与数据库的数据一致性问题
-        return Result.success(MessageConstant.SUCCESS);
+    public Result<String> updatePost(PostUpdateDto postUpdateDto) {
+        // 更新数据库
+        try{
+            if(selectPostsByPostIds(List.of(postUpdateDto.getPostId())).isEmpty()){
+                return Result.error(400,MessageConstant.EMPTY_KEY_PARAMETERS);
+            }
+            Post post = selectPostsByPostIds(List.of(postUpdateDto.getPostId())).get(0);
+            BeanUtils.copyProperties(postUpdateDto, post);
+            post.setUpdateTime(LocalDateTime.now());
+            updateById(post);
+            // 通过消息队列来异步更新缓存
+            PostUpdateMessage message=new PostUpdateMessage();
+            BeanUtils.copyProperties(postUpdateDto, message);
+            // 将消息发送到队列
+            rabbitTemplate.convertAndSend(QueueConstant.POST_UPDATE_QUEUE, message);
+            return Result.success(MessageConstant.SUCCESS);
+        }catch (Exception e){
+            log.error(MessageConstant.FAILED, e);
+            return Result.error(500,MessageConstant.FAILED);
+        }
     }
-
+    /**
+     * 根据postIds查询post，先从Redis中查询，若没有查到，则从数据库中查询，并将数据同步到Redis中
+     */
     public List<Post> selectPostsByPostIds(List<String> postIds) {
         if (postIds == null || postIds.isEmpty()) {
             return Collections.emptyList();
         }
-        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("post_id", postIds);
-        return postMapper.selectList(queryWrapper);
-    }
+        // 用于存储从Redis和数据库获取的帖子
+        Map<String, Post> postsMap = new HashMap<>();
 
+        // 尝试从Redis中获取帖子
+        for (String postId : postIds) {
+            String key = RedisKeyConstant.PREFIX_FOR_CACHE_POST + postId;
+            Map<Object, Object> postFromRedis = redisTemplate.opsForHash().entries(key);
+            if (!postFromRedis.isEmpty()) {
+                Post post = convertToPost(postFromRedis);
+                postsMap.put(postId, post);
+            }
+        }
+
+        // 找出没有在Redis中找到的postId
+        List<String> missingPostIds = postIds.stream()
+                .filter(id -> !postsMap.containsKey(id))
+                .collect(Collectors.toList());
+
+        // 如果有缺失的postId，从数据库中查询
+        if (!missingPostIds.isEmpty()) {
+            QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
+            queryWrapper.in("post_id", missingPostIds);
+            List<Post> postsFromDB = postMapper.selectList(queryWrapper.eq("status",1));
+
+            // 更新到Redis并添加到结果中
+            for (Post post : postsFromDB) {
+                cachePost(post);
+                postsMap.put(post.getPostId(), post);
+            }
+        }
+
+        // 按照原始postIds的顺序返回帖子列表
+        return postIds.stream()
+                .map(postsMap::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
     /**
      * 将Post存储到Redis中
      */
     public void cachePost(Post post) {
-        String key = StringConstant.PREFIX_FOR_CACHE + post.getPostId();
+        String key = RedisKeyConstant.PREFIX_FOR_CACHE_POST + post.getPostId();
         Map<String, String> postMap = new HashMap<>();
         postMap.put("uid", post.getUid());
         postMap.put("postId", post.getPostId());
@@ -324,42 +347,39 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         postMap.put("createTime", post.getCreateTime().toString());
         postMap.put("updateTime", post.getUpdateTime().toString());
         redisTemplate.opsForHash().putAll(key, postMap);
-        // 设置键过期时间为一周
-        redisTemplate.expire(key, 7, TimeUnit.DAYS);
+        // 设置键过期时间为一天
+        redisTemplate.expire(key, 1, TimeUnit.DAYS);
     }
-
     /**
      * 实现点赞功能
      */
     @Override
-    public void thumbComment(String postId) {
-        // 使用postId作为key，从Redis的ZSet中获取点赞数
+    public void thumbPost(String postId) {
+        // 使用postId构建key，从Redis的ZSet中获取点赞数
         int likes = getThumbFromCache(postId);
-        // 点赞数加一
-        //TODO：添加点赞人，被点赞贴，点赞状态
-        likes++;
+        LambdaQueryWrapper<PostLike> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(PostLike::getPostId, postId).eq(PostLike::getUid, BaseContext.getCurrentId());
+        PostLike like = postLikeMapper.selectOne(wrapper);
+        boolean isLike = like == null; // 如果不存在，则认为是点赞；如果存在，则认为是取消点赞
+        if(like == null) {
+            likes--;
+        }else {
+            likes++;
+        }
         // 将更新后的点赞数存回Redis的ZSet
-        redisTemplate.opsForZSet().add(StringConstant.PREFIX_FOR_CACHE_LIKES, postId, likes);
+        redisTemplate.opsForZSet().add(RedisKeyConstant.PREFIX_FOR_CACHE_LIKES, postId, likes);
+        // 创建并发送消息，记录点赞人，被点赞贴
+        PostLikeMessage message = new PostLikeMessage();
+        message.setPostId(postId);
+        message.setUid(BaseContext.getCurrentId());
+        message.setLike(isLike);
+        rabbitTemplate.convertAndSend(QueueConstant.POST_LIKE_UPDATE_QUEUE, message);
     }
-    /**
-     * 实现取消点赞功能
-     */
-    @Override
-    public void unThumbComment(String postId) {
-        // 使用postId作为key，从Redis的ZSet中获取点赞数
-        int likes = getThumbFromCache(postId);
-        // 点赞数减一
-        //TODO：删除点赞人，被点赞贴，点赞状态
-        likes--;
-        // 将更新后的点赞数存回Redis的ZSet
-        redisTemplate.opsForZSet().add(StringConstant.PREFIX_FOR_CACHE_LIKES, postId, likes);
-    }
-
     /**
      * 从Redis中取出thumb
      */
     private int getThumbFromCache(String postId) {
-        Double score = redisTemplate.opsForZSet().score(StringConstant.PREFIX_FOR_CACHE_LIKES, postId);
+        Double score = redisTemplate.opsForZSet().score(RedisKeyConstant.PREFIX_FOR_CACHE_LIKES, postId);
         int likes;
         if (score == null) {
             // 如果Redis中没有记录，从数据库中加载并缓存
@@ -375,13 +395,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
      * 将thumb存储到Redis中
      */
     private void cacheThumbs(String postId, Integer thumbs) {
-        redisTemplate.opsForZSet().add(StringConstant.PREFIX_FOR_CACHE_LIKES, postId, thumbs);
+        redisTemplate.opsForZSet().add(RedisKeyConstant.PREFIX_FOR_CACHE_LIKES, postId, thumbs);
     }
     /**
      * 从Redis中取出Post
      */
     public Post getPostFromCache(String postId) {
-        String key = StringConstant.PREFIX_FOR_CACHE + postId;
+        String key = RedisKeyConstant.PREFIX_FOR_CACHE_POST + postId;
         Map<Object, Object> postMap = redisTemplate.opsForHash().entries(key);
         if (postMap.isEmpty()) {
             // 如果Redis中没有数据，从数据库中加载并缓存

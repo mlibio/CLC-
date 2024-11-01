@@ -10,6 +10,7 @@ import org.clc.common.constant.MessageConstant;
 import org.clc.pojo.dto.PageQueryDto;
 import org.clc.pojo.dto.PostDto;
 import org.clc.pojo.dto.PostIdDto;
+import org.clc.pojo.dto.PostUpdateDto;
 import org.clc.pojo.entity.Post;
 import org.clc.common.result.PageResult;
 import org.clc.common.result.Result;
@@ -35,11 +36,7 @@ public class UserPostController {
 
     @GetMapping
     @Operation(summary = "分页返回贴子的接口",
-            description  = "分页返回首页帖子",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "分页返回首页帖子")
     public PageResult getPosts(@Parameter(description = "页数", required = true)
                                    @RequestParam(value = "page",defaultValue = "1") int page,
                                @Parameter(description = "页码大小", required = true)
@@ -52,11 +49,7 @@ public class UserPostController {
 
     @GetMapping("/detail")
     @Operation(summary = "返回贴子详情的接口",
-            description  = "返回所给ID的帖子的详情",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "返回所给ID的帖子的详情")
     public PostDetailVo getPost(String postId) {
         try{
             return postService.getPostDetail(postService.getOne(new QueryWrapper<Post>().eq("post_id",postId)));
@@ -67,11 +60,7 @@ public class UserPostController {
 
     @GetMapping("/favor")
     @Operation(summary = "分页返回收藏贴的接口",
-            description  = "分页返回用户收藏的帖子",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "分页返回用户收藏的帖子")
     public PageResult getFavorPost(@Parameter(description = "页数", required = true)
                                        @RequestParam(value = "page",defaultValue = "1") int page,
                                    @Parameter(description = "页码大小", required = true)
@@ -84,53 +73,26 @@ public class UserPostController {
 
     @PostMapping("/insert")
     @Operation(summary = "新增帖子接口",
-            description  = "新增帖子",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "新增帖子")
     public Result<String> addPost(@RequestBody PostDto postDto){
         return postService.addPost(postDto);
     }
 
     @PostMapping("/update")
     @Operation(summary = "更新帖子接口",
-            description  = "更新帖子",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
-    public Result<String> updatePost(@RequestBody PostDto postDto){return postService.updatePost(postDto);}
+            description  = "更新帖子")
+    public Result<String> updatePost(@RequestBody PostUpdateDto postUpdateDto){return postService.updatePost(postUpdateDto);}
 
     @PostMapping("/thumb")
     @Operation(summary = "点赞帖子接口",
-            description  = "点赞给定编号的帖子",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "点赞给定编号的帖子")
     public void thumbComment(String postId){
-        postService.thumbComment(postId);
-    }
-
-    @PostMapping("/unThumb")
-    @Operation(summary = "取消点赞接口",
-            description  = "取消给定编号的帖子的点赞",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
-    public void unThumbComment(String postId){
-        postService.unThumbComment(postId);
+        postService.thumbPost(postId);
     }
 
     @GetMapping("/hot")
     @Operation(summary = "获取热门帖子列表接口",
-            description  = "获取热门帖子列表",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "获取热门帖子列表")
     public PageResult getHotPosts(@Parameter(description = "页数", required = true)
                                       @RequestParam(value = "page",defaultValue = "1") int page,
                                   @Parameter(description = "页码大小", required = true)

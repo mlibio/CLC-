@@ -45,7 +45,6 @@
         <hutool>5.7.17</hutool>
         <pagehelper>1.4.6</pagehelper>
         <springdoc>2.0.2</springdoc>
-        <aspectj>1.9.7</aspectj>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
@@ -132,11 +131,6 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
-            <version>${aspectj}</version>
         </dependency>
     </dependencies>
 

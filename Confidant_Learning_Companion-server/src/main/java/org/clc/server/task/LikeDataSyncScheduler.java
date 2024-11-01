@@ -2,6 +2,7 @@ package org.clc.server.task;
 
 import lombok.extern.slf4j.Slf4j;
 import org.clc.common.constant.MessageConstant;
+import org.clc.common.constant.RedisKeyConstant;
 import org.clc.common.constant.StringConstant;
 import org.clc.server.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +34,7 @@ public class LikeDataSyncScheduler {
     public void syncLikesToDatabase() {
         try {
             // 获取所有点赞数据
-            Set<String> keys = redisTemplate.keys(StringConstant.PREFIX_FOR_CACHE_LIKES + "*");
+            Set<String> keys = redisTemplate.keys(RedisKeyConstant.PREFIX_FOR_CACHE_LIKES + "*");
             if (keys == null || keys.isEmpty()) {
                 return;
             }
@@ -53,7 +54,7 @@ public class LikeDataSyncScheduler {
         // 使用 pipeline 批量获取点赞数
         List<Object> results = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             for (String key : keys) {
-                connection.zSetCommands().zScore(StringConstant.PREFIX_FOR_CACHE_LIKES.getBytes(), key.getBytes());
+                connection.zSetCommands().zScore(RedisKeyConstant.PREFIX_FOR_CACHE_LIKES.getBytes(), key.getBytes());
             }
             return null;
         });

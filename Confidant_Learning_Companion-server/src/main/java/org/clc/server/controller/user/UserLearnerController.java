@@ -36,11 +36,7 @@ public class UserLearnerController {
     private LearnerFollowService learnerFollowService;
     @GetMapping
     @Operation(summary = "用户个人信息接口",
-            description  = "返回当前登录用户的信息",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "返回当前登录用户的信息")
     public Result<LearnerVo> getUserLearner() {
         String uid= BaseContext.getCurrentId();
         Learner learner=learnerService.getLearnerByUid(uid);
@@ -51,33 +47,21 @@ public class UserLearnerController {
 
     @PostMapping("/update")
     @Operation(summary = "更新用户接口",
-            description  = "输入更新用户信息，返回更新后的用户信息",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "输入更新用户信息，返回更新后的用户信息")
     public Result<LearnerVo> update(@RequestBody @Parameter(description = "更新参数", required = true) LearnerUpdateDto learnerUpdateDto){
         return learnerService.updateLearner(learnerUpdateDto);
     }
 
     @PostMapping("/updatePassword")
     @Operation(summary = "更改密码接口",
-            description  = "输入旧密码、新密码和确认新密码，返回更新结果",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "输入旧密码、新密码和确认新密码，返回更新结果")
     public Result<String> updatePassword(@RequestBody @Parameter(description = "更改密码参数", required = true) LearnerPasswordUpdateDto learnerPasswordUpdateDto){
         return learnerService.updatePassword(learnerPasswordUpdateDto);
     }
 
     @PostMapping("/follow")
     @Operation(summary = "关注用户接口",
-            description  = "输入被关注者UID",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "输入被关注者UID")
     public Result<String> follow(@RequestBody @Parameter(description = "被关注者UID", required = true) LearnerUidDto learnerUidDto){
         String followedLearner=learnerUidDto.getUid();
         return learnerFollowService.follow(followedLearner);
@@ -85,11 +69,7 @@ public class UserLearnerController {
 
     @PostMapping("/unfollow")
     @Operation(summary = "取消关注接口",
-            description  = "输入被关注者UID",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "输入被关注者UID")
     public Result<String> unfollow(@RequestBody @Parameter(description = "被关注者UID", required = true) LearnerUidDto learnerUidDto){
         String followedLearner=learnerUidDto.getUid();
         return learnerFollowService.unfollow(followedLearner);

@@ -27,6 +27,8 @@ public class MessageConstant {
     public static final String PHONE_ALREADY_EXISTS = "手机号已存在";
     public static final String EMAIL_ALREADY_EXISTS = "邮箱已存在";
     public static final String NO_RESOURCES_EXIST = "资源不存在";
+    public static final String EMPTY_ID = "ID为空";
+    public static final String EMPTY_KEY_PARAMETERS = "关键参数为空";
     public static final String EMPTY_RESOURCES = "资源为空";
     public static final String SUCCESS = "操作成功";
     public static final String FAILED = "操作失败";

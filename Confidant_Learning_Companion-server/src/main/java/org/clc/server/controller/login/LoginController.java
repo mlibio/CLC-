@@ -41,11 +41,7 @@ public class LoginController {
 
     @PostMapping
     @Operation(summary = "登录接口",
-            description  = "传入email和password，返回包含username、privileges和expireDate等信息的加密token",
-            responses = {@ApiResponse(responseCode = "200", description = "成功登录"),
-                        @ApiResponse(responseCode = "400", description = "请求错误"),
-                        @ApiResponse(responseCode = "401", description = "未授权"),
-                        @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "传入email和password，返回包含username、privileges和expireDate等信息的加密token")
     public Result<LoginVo> login(@RequestBody @Valid @Parameter(description = "登录参数", required = true) LoginDto loginDto) {
         try {
             if (loginDto.getEmail() == null || loginDto.getPassword() == null) {
@@ -94,11 +90,7 @@ public class LoginController {
     }
     @PostMapping("/register")
     @Operation(summary = "注册接口",
-            description  = "传入注册信息，返回包含username、privileges和expireDate等信息的加密token",
-            responses = {@ApiResponse(responseCode = "200", description = "成功注册"),
-                        @ApiResponse(responseCode = "400", description = "请求错误"),
-                        @ApiResponse(responseCode = "401", description = "未授权"),
-                        @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "传入注册信息，返回包含username、privileges和expireDate等信息的加密token")
     public Result<LearnerVo> register(@RequestBody @Parameter(description = "注册参数", required = true) LearnerDto learnerDto) throws Exception {
         if(learnerDto==null){
             return Result.error(400,MessageConstant.ILLEGAL_DATA);

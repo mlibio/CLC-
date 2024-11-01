@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import org.clc.pojo.dto.PageQueryDto;
 import org.clc.pojo.dto.PostDto;
 import org.clc.pojo.dto.PostIdDto;
+import org.clc.pojo.dto.PostUpdateDto;
 import org.clc.pojo.entity.Post;
 import org.clc.common.result.PageResult;
 import org.clc.common.result.Result;
@@ -37,7 +38,7 @@ public interface PostService extends IService<Post> {
     /**
      * 点赞
      */
-    void thumbComment(String postId);
+    void thumbPost(String postId);
 
     /**
      * 获取热帖
@@ -52,14 +53,9 @@ public interface PostService extends IService<Post> {
     void cachePost(Post post);
 
     /**
-     * 取消点赞
-     */
-    void unThumbComment(String postId);
-
-    /**
      * 同步点赞数据到数据库
      */
     void updateLikesInDatabase(Map<String, Double> likesMap);
 
-    Result<String> updatePost(PostDto postDto);
+    Result<String> updatePost(PostUpdateDto postUpdateDto);
 }

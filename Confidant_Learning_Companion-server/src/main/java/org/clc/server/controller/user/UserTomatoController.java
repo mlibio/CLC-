@@ -36,11 +36,7 @@ public class UserTomatoController {
 
     @GetMapping
     @Operation(summary = "返回用户当天番茄数据接口",
-            description  = "返回用户ID、日期、当日番茄数量和当日总学习时长",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "返回用户ID、日期、当日番茄数量和当日总学习时长")
     public Result<TomatoVo> getTomatoToday(){
         Tomato tomato=tomatoService.getTomatoToday();
         if(tomato==null){
@@ -56,11 +52,7 @@ public class UserTomatoController {
 
     @GetMapping("/statistics")
     @Operation(summary = "番茄统计接口",
-            description  = "分页返回用户ID、日期、当日番茄数量和当日总学习时长",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "分页返回用户ID、日期、当日番茄数量和当日总学习时长")
     public PageResult getTomato(@Parameter(description = "页数", required = true)
                                     @RequestParam(value = "page",defaultValue = "1") int page,
                                 @Parameter(description = "页码大小", required = true)
@@ -74,11 +66,7 @@ public class UserTomatoController {
 
     @PostMapping("/update")
     @Operation(summary = "番茄更新接口",
-            description  = "传入本次番茄学习时长（分钟）",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "传入本次番茄学习时长（分钟）")
     public Result<String> updateTomato(@RequestBody @Parameter(description = "本次番茄学习时长（分钟）", required = true) TomatoUpdateDto tomatoUpdateDto){
         String currentId = BaseContext.getCurrentId();
         Integer time=tomatoUpdateDto.getTime();

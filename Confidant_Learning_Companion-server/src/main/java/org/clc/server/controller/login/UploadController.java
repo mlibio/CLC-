@@ -34,11 +34,7 @@ public class UploadController {
 
     @PostMapping("/image")
     @Operation(summary = "图片上传接口",
-            description  = "上传图片不能大于2M,仅能上传png jpg jpeg类型图片,返回图片存储地址filePath",
-            responses = {@ApiResponse(responseCode = "200", description = "成功上传"),
-                        @ApiResponse(responseCode = "400", description = "请求错误"),
-                        @ApiResponse(responseCode = "401", description = "未授权"),
-                        @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "上传图片不能大于2M,仅能上传png jpg jpeg类型图片,返回图片存储地址filePath")
     public Result upload(@RequestParam("image") @Parameter(description = "图片", required = true) MultipartFile image) {
         if(image.isEmpty()) {
             return Result.error(400,MessageConstant.UPLOAD_FAILED);

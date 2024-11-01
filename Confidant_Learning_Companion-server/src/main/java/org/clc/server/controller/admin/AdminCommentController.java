@@ -28,22 +28,14 @@ public class AdminCommentController {
 
     @PostMapping("/delete")
     @Operation(summary = "删除评论接口",
-            description  = "删除给定编号的评论",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "删除给定编号的评论")
     public Result<String> deleteComment(String cId){
         return commentService.deleteCommentByCId(cId);
     }
 
     @PostMapping("/deleteByPostId")
     @Operation(summary = "删除评论接口",
-            description  = "删除给定评论编号的评论",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "删除给定评论编号的评论")
     public Result<String> deleteCommentByPostId(String postId){
         return commentService.deleteCommentByPostId(postId);
     }

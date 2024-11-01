@@ -28,11 +28,7 @@ public class AdminPostController {
 
     @GetMapping
     @Operation(summary = "分页返回贴子的接口",
-            description  = "分页返回帖子",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "分页返回帖子")
     public PageResult getPosts(@Parameter(description = "页数", required = true)
                                @RequestParam(value = "page",defaultValue = "1") int page,
                                @Parameter(description = "页码大小", required = true)
@@ -45,22 +41,14 @@ public class AdminPostController {
 
     @PostMapping("/ban")
     @Operation(summary = "封禁帖子的接口",
-            description  = "输入要封禁帖子的postId",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "输入要封禁帖子的postId")
     public Result<String> ban(@RequestBody @Parameter(description = "要封禁的postId") PostIdDto postIdDto){
         return postService.ban(postIdDto);
     }
 
     @PostMapping("/unban")
     @Operation(summary = "解封帖子的接口",
-            description  = "输入要解封帖子的postId",
-            responses = {@ApiResponse(responseCode = "200", description = "成功"),
-                    @ApiResponse(responseCode = "400", description = "请求错误"),
-                    @ApiResponse(responseCode = "401", description = "未授权"),
-                    @ApiResponse(responseCode = "500", description = "服务器错误")})
+            description  = "输入要解封帖子的postId")
     public Result<String> unban(@RequestBody @Parameter(description = "要封禁的postId") PostIdDto postIdDto){
         return postService.unban(postIdDto);
     }
